@@ -11,7 +11,9 @@ dotenv.config();//Load values from .env file into process.env
 
 const app=express();
 
-app.use(cors());
+app.use(cors({
+  origin: "https://satsang-tez.vercel.app/"
+}));
 app.use(express.json());
 
 app.get("/",(req,res)=>{
