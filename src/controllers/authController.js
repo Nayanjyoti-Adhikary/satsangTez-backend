@@ -184,7 +184,7 @@ export const registerUser = async (req, res) => {
       const insertQuery = `
         INSERT INTO users 
         (name, username, mobile_no,email, password_hash, family_code, mandir_code)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `;
 
       db.query(
