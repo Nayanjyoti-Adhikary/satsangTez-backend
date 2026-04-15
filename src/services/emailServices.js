@@ -1,27 +1,19 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-const transporter = nodemailer.createTransport({
-  host: "142.250.152.108", // ✅ Gmail SMTP IPv4 (hardcoded)
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendEmailOTP = async (email, otp) => {
   try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    await resend.emails.send({
+      from: "onboarding@resend.dev", // default test sender
       to: email,
       subject: "OTP for Thakur Bhog Login",
       text: `Your OTP is: ${otp}`,
     });
 
-    console.log("Email OTP sent successfully");
+    console.log("Email sent via Resend");
   } catch (error) {
-    console.error("Email Error FULL:", error);
+    console.error("Email Error:", error);
     throw error;
   }
 };
