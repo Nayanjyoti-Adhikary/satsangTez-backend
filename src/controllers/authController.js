@@ -70,6 +70,7 @@ export  const sendOtp =  (req, res) => {
       }
       try {
         await sendEmailOTP(email,otp);
+       // console.log("EMAIL SENT TO:", email);
 
         res.json({
           message:"OTP sent to your email"
