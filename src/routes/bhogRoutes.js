@@ -1,41 +1,49 @@
 import express from "express";
 import { createBhog } from "../controllers/bhogController.js";
 import { authenticate } from "../middleware/authMiddleware.js";
-import { requireAdmin } from "../middleware/adminMiddleware.js";
+
 import db from "../config/db.js";
+import { requireAdmin } from "../middleware/adminMiddleware.js";
+import { getAll, getMonthlySummary } from "../controllers/bhogController.js";
+import { search_bhog } from "../controllers/dashboardController.js";
 
 
 const router = express.Router();
 
 router.post("/create", authenticate, createBhog);
-router.get("/all", authenticate, requireAdmin, (req, res) => {
-  db.query("SELECT * FROM thakur_bhog", (err, results) => {
-    if (err) {
-      return res.status(500).json({ message: "Database error" });
-    }
+router.get("/all", authenticate, requireAdmin, getAll);
+router.get("/monthly-summary/:year", authenticate, requireAdmin, getMonthlySummary);
+router.get("/search", authenticate, requireAdmin,search_bhog)
+// DELETE BHOG ENTRY
+router.delete(
+  "/delete/:id",
+  authenticate,
+  requireAdmin,
+  (req, res) => {
 
-    res.json(results);
-  });
-});
-router.get("/monthly-summary/:year", authenticate, requireAdmin, (req, res) => {
-  const year = req.params.year;
+    const { id } = req.params;
 
-  const query = `
-    SELECT month, SUM(amount) as total_amount
-    FROM thakur_bhog
-    WHERE year = ?
-    GROUP BY month
-    ORDER BY month ASC
-  `;
+    const query = `
+      DELETE FROM thakur_bhog
+      WHERE id = ?
+    `;
 
-  db.query(query, [year], (err, results) => {
-    if (err) {
-      return res.status(500).json({ message: "Database error" });
-    }
+    db.query(query, [id], (err) => {
 
-    res.json(results);
-  });
-});
+      if (err) {
+        return res.status(500).json({
+          message: "Delete failed",
+        });
+      }
+
+      res.json({
+        message: "Bhog entry deleted",
+      });
+
+    });
+
+  }
+);
 
 
 export default router;

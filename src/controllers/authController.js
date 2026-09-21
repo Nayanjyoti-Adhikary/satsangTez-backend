@@ -3,7 +3,7 @@ import generateOtp from "../utils/generateOtp.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import axios from "axios";
-import { formatMobileForWhatsApp } from "./formatMobileForWhatsApp.js";
+//import { formatMobileForWhatsApp } from "./formatMobileForWhatsApp.js";
 import { sendEmailOTP } from "../services/emailServices.js";
 
 /* const sendWhatsappOtp = async (mobile, otp) => {
@@ -106,11 +106,13 @@ export const verifyOtp = (req, res) => {
     const username = user.username;
 
     const otpQuery = `
-      SELECT * FROM otp_log 
-      WHERE username = ?
-      ORDER BY created_at DESC 
-      LIMIT 1
-    `;
+  SELECT * FROM otp_log
+  WHERE username = ?
+    AND is_verified = 0
+    AND created_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+  ORDER BY created_at DESC
+  LIMIT 1
+`; //the database is doing the otp expiry check
 
     db.query(otpQuery, [username], (err, results) => {
       if (err) return res.status(500).json({ message: "Database error" });
@@ -122,12 +124,7 @@ export const verifyOtp = (req, res) => {
       const latestOtp = results[0];
 
       // Expiry check
-      const otpAge = Date.now() - new Date(latestOtp.created_at).getTime();
-      const fiveMinutes = 5 * 60 * 1000;
-
-      if (otpAge > fiveMinutes) {
-        return res.status(400).json({ message: "OTP expired" });
-      }
+  
 
       if (latestOtp.is_verified === 1) {
         return res.status(400).json({ message: "OTP already used" });
@@ -136,6 +133,9 @@ export const verifyOtp = (req, res) => {
       if (String(latestOtp.otp_code) !== String(otp)) {
         return res.status(400).json({ message: "Invalid OTP" });
       }
+      console.log("OTP received:", otp);
+console.log("Latest OTP:", latestOtp);
+console.log("User:", user);
 
       // Mark verified
       const updateQuery =

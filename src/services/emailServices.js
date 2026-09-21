@@ -1,21 +1,93 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
+export const sendConfirmationEmail = async (
+  email,
+  depositor,
+  familyCode,
+  amount,
+  type
+) => {
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: `${type} Contribution Confirmation`,
+
+    html: `
+      <h2>Tezpur Kendra  Mandir Bhog Management System</h2>
+
+      <p>Dear ${depositor},</p>
+      <p> জয়গুৰু </p>
+
+      <p>Your Bhog has been recorded successfully.</p>
+      
+
+      <table border="1" cellpadding="8">
+        <tr>
+          <td><b>Type</b></td>
+          <td>${type}</td>
+        </tr>
+
+        <tr>
+          <td><b>Family Code</b></td>
+          <td>${familyCode}</td>
+        </tr>
+
+        <tr>
+          <td><b>Amount</b></td>
+          <td>₹${amount}</td>
+        </tr>
+      </table>
+
+      <br>
+
+      <p>
+        Thank you for your contribution.
+      </p>
+
+      <p>
+        Regards,<br>
+        SATSANG VIHAR TEZPUR
+      </p>
+    `,
+  });
+};
 export const sendEmailOTP = async (email, otp) => {
-  try {
-    await resend.emails.send({
-      from: "onboarding@resend.dev", // default test sender
-      to: email,
-      subject: "OTP for Thakur Bhog Login",
-      text: `Your OTP is: ${otp}`,
-    });
 
-    console.log("Email sent via Resend");
-    console.log("otp send to ",email);
-  } catch (error) {
-    console.error("Email Error:", error);
-    throw error;
-  }
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "OTP Verification",
+
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+
+        <h2>Tezpur Kendra Mandir Bhog Management System</h2>
+
+        <p>Your OTP for verification is:</p>
+
+        <h1 style="letter-spacing: 5px;">
+          ${otp}
+        </h1>
+
+        <p>
+          This OTP is valid for 5 minutes.
+        </p>
+
+        <p>
+          If you did not request this OTP, please ignore this email.
+        </p>
+
+      </div>
+    `,
+  });
+
 };
 
