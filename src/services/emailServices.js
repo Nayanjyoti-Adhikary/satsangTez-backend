@@ -1,3 +1,7 @@
+import dns from "dns";
+import nodemailer from "nodemailer";
+
+dns.setDefaultResultOrder("ipv4first");
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
@@ -10,9 +14,7 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 
-  tls: {
-    family: 4,
-  },
+  requireTLS: true,
 });
 
 transporter.verify((error, success) => {
