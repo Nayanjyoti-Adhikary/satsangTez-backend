@@ -2,7 +2,7 @@ import dns from "dns";
 import nodemailer from "nodemailer";
 
 dns.setDefaultResultOrder("ipv4first");
-import nodemailer from "nodemailer";
+
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
