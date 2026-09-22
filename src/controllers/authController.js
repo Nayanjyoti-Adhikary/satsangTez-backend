@@ -38,53 +38,79 @@ import { sendEmailOTP } from "../services/emailServices.js";
 */
 
 
-export  const sendOtp =  (req, res) => {
+export const sendOtp = (req, res) => {
   const { mobile } = req.body;
+
+  console.log("SEND OTP REQUEST:", mobile);
 
   if (!mobile) {
     return res.status(400).json({ message: "Mobile number required" });
   }
 
-  const userQuery = "SELECT username,email FROM users WHERE mobile_no = ?";
+  const userQuery = "SELECT username, email FROM users WHERE mobile_no = ?";
 
   db.query(userQuery, [mobile], (err, result) => {
+
     if (err) {
+      console.error("USER QUERY ERROR:", err);
       return res.status(500).json({ message: "Database error" });
     }
+
+    console.log("USER QUERY RESULT:", result);
 
     if (result.length === 0) {
       return res.status(400).json({ message: "User not found" });
     }
 
-    const user=result[0];
-    const username=user.username;
-    const email=user.email;
+    const user = result[0];
+    const username = user.username;
+    const email = user.email;
+
     const otp = generateOtp();
+
+    console.log("USERNAME:", username);
+    console.log("EMAIL:", email);
+    console.log("GENERATED OTP:", otp);
 
     const insertQuery =
       "INSERT INTO otp_log (username, otp_code) VALUES (?, ?)";
 
-    db.query(insertQuery, [username, otp],async (insertErr) =>  {
-      if (insertErr) {
-        return res.status(500).json({ message: "OTP generation failed" });
+    db.query(
+      insertQuery,
+      [username, otp],
+      async (insertErr, insertResult) => {
+
+        if (insertErr) {
+          console.error("OTP INSERT ERROR:", insertErr);
+          return res.status(500).json({
+            message: "OTP generation failed"
+          });
+        }
+
+        console.log("OTP INSERT SUCCESS:", insertResult);
+
+        try {
+
+          console.log("SENDING EMAIL OTP...");
+
+          await sendEmailOTP(email, otp);
+
+          console.log("EMAIL OTP SENT SUCCESSFULLY");
+
+          return res.json({
+            message: "OTP sent to your email"
+          });
+
+        } catch (error) {
+
+          console.error("EMAIL OTP ERROR:", error);
+
+          return res.status(500).json({
+            message: "Failed to send OTP"
+          });
+        }
       }
-      try {
-        await sendEmailOTP(email,otp);
-       // console.log("EMAIL SENT TO:", email);
-
-        res.json({
-          message:"OTP sent to your email"
-        });
-      } catch (error) {
-        res.status(500).json(
-          {
-            message:"failed to send OTP",
-          }
-        );
-      }
-
-
-    });
+    );
   });
 };
 
