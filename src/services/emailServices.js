@@ -1,11 +1,26 @@
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
+
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+
+  tls: {
+    family: 4,
+  },
+});
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("EMAIL TRANSPORT ERROR:", error);
+  } else {
+    console.log("EMAIL SERVER READY");
+  }
 });
 
 export const sendConfirmationEmail = async (
@@ -21,13 +36,13 @@ export const sendConfirmationEmail = async (
     subject: `${type} Contribution Confirmation`,
 
     html: `
-      <h2>Tezpur Kendra  Mandir Bhog Management System</h2>
+      <h2>Tezpur Kendra Mandir Bhog Management System</h2>
 
       <p>Dear ${depositor},</p>
-      <p> জয়গুৰু </p>
+
+      <p>জয়গুৰু</p>
 
       <p>Your Bhog has been recorded successfully.</p>
-      
 
       <table border="1" cellpadding="8">
         <tr>
@@ -48,9 +63,7 @@ export const sendConfirmationEmail = async (
 
       <br>
 
-      <p>
-        Thank you for your contribution.
-      </p>
+      <p>Thank you for your contribution.</p>
 
       <p>
         Regards,<br>
@@ -59,8 +72,8 @@ export const sendConfirmationEmail = async (
     `,
   });
 };
-export const sendEmailOTP = async (email, otp) => {
 
+export const sendEmailOTP = async (email, otp) => {
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to: email,
@@ -88,6 +101,4 @@ export const sendEmailOTP = async (email, otp) => {
       </div>
     `,
   });
-
 };
-
