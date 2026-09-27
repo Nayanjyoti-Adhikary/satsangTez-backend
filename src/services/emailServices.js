@@ -1,29 +1,95 @@
-import dns from "dns";
 import nodemailer from "nodemailer";
+import { OAuth2Client } from "google-auth-library";
 
-dns.setDefaultResultOrder("ipv4first");
+/**
+ * Sends email through the Gmail API over HTTPS (port 443), so it works on
+ * hosts that block SMTP ports (e.g. Render free web services).
+ *
+ * Required environment variables:
+ *   EMAIL_USER            the Gmail address you authorised, e.g. you@gmail.com
+ *   GOOGLE_CLIENT_ID
+ *   GOOGLE_CLIENT_SECRET
+ *   GOOGLE_REFRESH_TOKEN  obtained once via the OAuth Playground (scope: gmail.send)
+ */
 
+const GMAIL_SEND_URL =
+  "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
+// Created lazily so it works even if dotenv loads after this module is imported.
+let oauthClient;
+function getOAuthClient() {
+  if (!oauthClient) {
+    const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN } =
+      process.env;
 
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REFRESH_TOKEN) {
+      throw new Error(
+        "Missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REFRESH_TOKEN"
+      );
+    }
 
-  requireTLS: true,
-});
-
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("EMAIL TRANSPORT ERROR:", error);
-  } else {
-    console.log("EMAIL SERVER READY");
+    oauthClient = new OAuth2Client(
+      GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET,
+      "https://developers.google.com/oauthplayground"
+    );
+    oauthClient.setCredentials({ refresh_token: GOOGLE_REFRESH_TOKEN });
   }
+  return oauthClient;
+}
+
+// Nodemailer is used only to build the MIME message (handles UTF-8 text such
+// as Assamese/Bengali, HTML + plain-text parts, header encoding). It does not
+// open any SMTP connection.
+const composer = nodemailer.createTransport({
+  streamTransport: true,
+  buffer: true,
+  newline: "windows",
 });
+
+const escapeHtml = (value) =>
+  String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ]
+  );
+
+async function sendMail({ to, subject, html, text }) {
+  const { message } = await composer.sendMail({
+    from: `"Satsang Vihar Tezpur" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html,
+    text,
+  });
+
+  try {
+    await getOAuthClient().request({
+      url: GMAIL_SEND_URL,
+      method: "POST",
+      data: { raw: message.toString("base64url") },
+      timeout: 15000,
+    });
+  } catch (err) {
+    const data = err.response?.data;
+    const detail =
+      data?.error_description ||
+      data?.error?.message ||
+      (typeof data?.error === "string" ? data.error : null) ||
+      err.message;
+
+    if (data?.error === "invalid_grant") {
+      console.error(
+        "GMAIL AUTH ERROR: refresh token expired or revoked. " +
+          "Generate a new one in the OAuth Playground and make sure the " +
+          "consent screen is set to 'In production'."
+      );
+    }
+    throw new Error(`Gmail API send failed: ${detail}`);
+  }
+}
 
 export const sendConfirmationEmail = async (
   email,
@@ -32,15 +98,17 @@ export const sendConfirmationEmail = async (
   amount,
   type
 ) => {
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  await sendMail({
     to: email,
     subject: `${type} Contribution Confirmation`,
-
+    text:
+      `Dear ${depositor},\n\nYour Bhog has been recorded successfully.\n\n` +
+      `Type: ${type}\nFamily Code: ${familyCode}\nAmount: ₹${amount}\n\n` +
+      `Thank you for your contribution.\n\nRegards,\nSATSANG VIHAR TEZPUR`,
     html: `
       <h2>Tezpur Kendra Mandir Bhog Management System</h2>
 
-      <p>Dear ${depositor},</p>
+      <p>Dear ${escapeHtml(depositor)},</p>
 
       <p>জয়গুৰু</p>
 
@@ -49,17 +117,17 @@ export const sendConfirmationEmail = async (
       <table border="1" cellpadding="8">
         <tr>
           <td><b>Type</b></td>
-          <td>${type}</td>
+          <td>${escapeHtml(type)}</td>
         </tr>
 
         <tr>
           <td><b>Family Code</b></td>
-          <td>${familyCode}</td>
+          <td>${escapeHtml(familyCode)}</td>
         </tr>
 
         <tr>
           <td><b>Amount</b></td>
-          <td>₹${amount}</td>
+          <td>₹${escapeHtml(amount)}</td>
         </tr>
       </table>
 
@@ -76,11 +144,13 @@ export const sendConfirmationEmail = async (
 };
 
 export const sendEmailOTP = async (email, otp) => {
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+  await sendMail({
     to: email,
     subject: "OTP Verification",
-
+    text:
+      `Your OTP for verification is: ${otp}\n\n` +
+      `This OTP is valid for 5 minutes.\n` +
+      `If you did not request this OTP, please ignore this email.`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
 
@@ -89,7 +159,7 @@ export const sendEmailOTP = async (email, otp) => {
         <p>Your OTP for verification is:</p>
 
         <h1 style="letter-spacing: 5px;">
-          ${otp}
+          ${escapeHtml(otp)}
         </h1>
 
         <p>
