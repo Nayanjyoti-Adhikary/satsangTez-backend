@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 import axios from "axios";
 //import { formatMobileForWhatsApp } from "./formatMobileForWhatsApp.js";
 import { sendEmailOTP } from "../services/emailServices.js";
-import admin from "../config/firebaseAdmin.js";
+import { adminAuth } from "../config/firebaseAdmin.js";
 
 /* const sendWhatsappOtp = async (mobile, otp) => {
   try {
@@ -292,7 +292,7 @@ export const googleLogin = async (req, res) => {
   let decoded;
 
   try {
-    decoded = await admin.auth().verifyIdToken(idToken);
+    decoded = await adminAuth.verifyIdToken(idToken);
   } catch (error) {
     console.error("GOOGLE TOKEN VERIFY ERROR:", error);
     return res.status(401).json({ message: "Invalid or expired Google token" });

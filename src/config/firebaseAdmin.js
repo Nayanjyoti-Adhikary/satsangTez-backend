@@ -1,7 +1,8 @@
-import admin from "firebase-admin";
+import { initializeApp, cert } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 
-admin.initializeApp({
-  credential: admin.credential.cert({
+const app = initializeApp({
+  credential: cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
     // Render stores the key with literal \n sequences; convert them back
@@ -10,4 +11,4 @@ admin.initializeApp({
   }),
 });
 
-export default admin;
+export const adminAuth = getAuth(app);
