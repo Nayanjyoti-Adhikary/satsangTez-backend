@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import axios from "axios";
 //import { formatMobileForWhatsApp } from "./formatMobileForWhatsApp.js";
 import { sendEmailOTP } from "../services/emailServices.js";
+import admin from "../config/firebaseAdmin.js";
 
 /* const sendWhatsappOtp = async (mobile, otp) => {
   try {
@@ -70,7 +71,7 @@ export const sendOtp = (req, res) => {
 
     console.log("USERNAME:", username);
     console.log("EMAIL:", email);
-    console.log("GENERATED OTP:", otp);
+    //console.log("GENERATED OTP:", otp);
 
     const insertQuery =
       "INSERT INTO otp_log (username, otp_code) VALUES (?, ?)";
@@ -277,6 +278,59 @@ export const loginWithPassword = (req, res) => {
     res.json({
       message: "Login successful",
       token: token,
+    });
+  });
+};
+
+export const googleLogin = async (req, res) => {
+  const { idToken } = req.body;
+
+  if (!idToken) {
+    return res.status(400).json({ message: "ID token required" });
+  }
+
+  let decoded;
+
+  try {
+    decoded = await admin.auth().verifyIdToken(idToken);
+  } catch (error) {
+    console.error("GOOGLE TOKEN VERIFY ERROR:", error);
+    return res.status(401).json({ message: "Invalid or expired Google token" });
+  }
+
+  const email = decoded.email;
+
+  if (!email) {
+    return res.status(400).json({ message: "Google account has no email" });
+  }
+
+  console.log("GOOGLE LOGIN EMAIL:", email);
+
+  const userQuery = "SELECT * FROM users WHERE email = ?";
+
+  db.query(userQuery, [email], (err, result) => {
+    if (err) {
+      console.error("USER QUERY ERROR:", err);
+      return res.status(500).json({ message: "Database error" });
+    }
+
+    if (result.length === 0) {
+      return res.status(400).json({
+        message: "No account found for this Google email. Please register first.",
+      });
+    }
+
+    const user = result[0];
+
+    const token = jwt.sign(
+      { username: user.username, is_admin: user.is_admin },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.json({
+      message: "Login successful",
+      token,
     });
   });
 };
