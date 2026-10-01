@@ -1,5 +1,5 @@
 import express from "express";
-import { sendOtp ,verifyOtp } from "../controllers/authController.js";
+import { googleLogin, sendOtp ,verifyOtp } from "../controllers/authController.js";
 import { registerUser } from "../controllers/authController.js";
 import { loginWithPassword } from "../controllers/authController.js";
 import { changePass, verifyforPass } from "../controllers/resetPassController.js";
@@ -12,5 +12,6 @@ router.post("/send-otp", sendOtp);
 router.post("/verify-otp", verifyOtp);
 router.post("/change-password",changePass);
 router.post("/verifyforPass",verifyforPass);
+router.post("/google-login",googleLogin,)
 
 export default router;
