@@ -1,76 +1,10 @@
 import db from "../config/db.js";
 
-// export const getDashboardStats = async (req, res) => {
-//   console.log(" getDashboardStats controller reached");
-//   try {
-
-//     const today = new Date().toISOString().split("T")[0];
-
-//     const bhogQuery = `
-//       SELECT SUM(amount) AS total
-//       FROM thakur_bhog
-//       WHERE date_of_deposit = ?
-//     `;
-
-//     const pronamiQuery = `
-//       SELECT SUM(amount) AS total
-//       FROM pronami
-//       WHERE date_of_entry = ?
-//     `;
-
-//     const entryQuery = `
-//       SELECT
-//       (
-//         (SELECT COUNT(*) FROM thakur_bhog)
-//         +
-//         (SELECT COUNT(*) FROM pronami)
-//       ) AS totalEntries
-//     `;
-
-//     db.query(bhogQuery, [today], (err1, bhogResult) => {
-
-//       if (err1) {
-//         return res.status(500).json({ message: "Bhog query failed" });
-//       }
-
-//       db.query(pronamiQuery, [today], (err2, pronamiResult) => {
-
-//         if (err2) {
-//           return res.status(500).json({ message: "Pronami query failed" });
-//         }
-
-//         db.query(entryQuery, (err3, entryResult) => {
-
-//           if (err3) {
-//             return res.status(500).json({ message: "Entry query failed" });
-//           }
-
-//           res.json({
-//             bhogTotal: bhogResult[0].total || 0,
-//             pronamiTotal: pronamiResult[0].total || 0,
-//             totalEntries: entryResult[0].totalEntries || 0,
-//           });
-
-//         });
-
-//       });
-
-//     });
-
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
 export const getDashboardStats = async (req, res) => {
+  console.log(" getDashboardStats controller reached");
   try {
 
-    console.log("🔥 getDashboardStats controller reached");
-
     const today = new Date().toISOString().split("T")[0];
-
-    console.log("📅 Today:", today);
 
     const bhogQuery = `
       SELECT SUM(amount) AS total
@@ -80,7 +14,7 @@ export const getDashboardStats = async (req, res) => {
 
     const pronamiQuery = `
       SELECT SUM(amount) AS total
-      FROM pronami
+      FROM box_pronami
       WHERE date_of_entry = ?
     `;
 
@@ -95,66 +29,41 @@ export const getDashboardStats = async (req, res) => {
 
     db.query(bhogQuery, [today], (err1, bhogResult) => {
 
-      console.log("========== BHOG QUERY ==========");
-      console.log("Error:", err1);
-      console.log("Result:", bhogResult);
-
       if (err1) {
-        return res.status(500).json({
-          message: "Bhog query failed",
-          error: err1.message
-        });
+        return res.status(500).json({ message: "Bhog query failed" });
       }
 
       db.query(pronamiQuery, [today], (err2, pronamiResult) => {
 
-        console.log("========== PRONAMI QUERY ==========");
-        console.log("Error:", err2);
-        console.log("Result:", pronamiResult);
-
         if (err2) {
-          return res.status(500).json({
-            message: "Pronami query failed",
-            error: err2.message
-          });
+          return res.status(500).json({ message: "Pronami query failed" });
         }
 
         db.query(entryQuery, (err3, entryResult) => {
 
-          console.log("========== ENTRY QUERY ==========");
-          console.log("Error:", err3);
-          console.log("Result:", entryResult);
-
           if (err3) {
-            return res.status(500).json({
-              message: "Entry query failed",
-              error: err3.message
-            });
+            return res.status(500).json({ message: "Entry query failed" });
           }
 
-          const response = {
+          res.json({
             bhogTotal: bhogResult[0].total || 0,
             pronamiTotal: pronamiResult[0].total || 0,
             totalEntries: entryResult[0].totalEntries || 0,
-          };
+          });
 
-          console.log("========== FINAL RESPONSE ==========");
-          console.log(response);
-
-          res.json(response);
         });
+
       });
+
     });
 
   } catch (error) {
-    console.error("🔥 Dashboard controller error:", error);
-
-    res.status(500).json({
-      message: "Server error",
-      error: error.message
-    });
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
   }
 };
+
+
 export const getRecentBhog=async (req,res) =>{
     const query=`select id,depositor,amount,bhog_type,date_of_deposit 
     from thakur_bhog order by id DESC LIMIT 5` ;
