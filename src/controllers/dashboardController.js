@@ -1,6 +1,7 @@
 import db from "../config/db.js";
 
 export const getDashboardStats = async (req, res) => {
+  console.log(" getDashboardStats controller reached");
   try {
 
     const today = new Date().toISOString().split("T")[0];
