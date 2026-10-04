@@ -23,7 +23,7 @@ export const getDashboardStats = async (req, res) => {
       (
         (SELECT COUNT(*) FROM thakur_bhog)
         +
-        (SELECT COUNT(*) FROM pronami)
+        (SELECT COUNT(*) FROM box_pronami)
       ) AS totalEntries
     `;
 
@@ -101,7 +101,7 @@ const {
 
   let query = `
     SELECT *
-    FROM pronami
+    FROM box_pronami 
     WHERE 1=1
   `;
 
